@@ -1,0 +1,45 @@
+#include <iostream>
+#include <chrono>
+#include <omp.h>
+
+int fib(int n) {
+    if (n < 2) {
+        return n;
+    }
+
+    int result;
+
+#pragma omp parallel
+#pragma omp single nowait
+    {
+        // создаем две задачи на вычисление fib(n-1) и fib(n-2)
+        // и ждем, пока обе задачи завершатся
+#pragma omp task shared(result)
+        result = fib(n - 1);
+
+#pragma omp task
+        {
+            int temp = fib(n - 2);
+#pragma omp taskwait
+            result += temp;
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    int n = 40;
+
+    std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
+
+    int fib_result = fib(n);
+
+    std::chrono::steady_clock::time_point end_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> elapsed_time = end_time - start_time;
+    std::cout << "Time elapsed: " << elapsed_time.count() << " seconds" << std::endl;
+
+    std::cout << "Fibonacci number #" << n << " is " << fib_result << std::endl;
+
+    return 0;
+}

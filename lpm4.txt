@@ -1,0 +1,94 @@
+#include <iostream>
+#include <Windows.h>
+#include <process.h>
+#include <queue>
+
+const int QUEUE_SIZE = 10;
+const int NUM_PRODUCERS = 2;
+const int NUM_CONSUMERS = 3;
+
+HANDLE hMutex;
+HANDLE hSemaphore;
+std::queue<int> queue;
+
+
+unsigned __stdcall producer(void* arg) {
+    int id = (int)arg;
+    std::cout << "Producer " << id << " started" << std::endl;
+    for (int i = 0; i < 5; ++i) {
+        WaitForSingleObject(hSemaphore, INFINITE);
+        WaitForSingleObject(hMutex, INFINITE);
+        queue.push(i + id * 5);
+        std::cout << "Producer " << id << " produced " << i + id * 5 << std::endl;
+        ReleaseMutex(hMutex);
+        ReleaseSemaphore(hSemaphore, 1, NULL);
+        Sleep(1000);
+    }
+    std::cout << "Producer " << id << " finished" << std::endl;
+    return 0;
+}
+
+
+unsigned __stdcall consumer(void* arg) {
+    int id = (int)arg;
+    std::cout << "Consumer " << id << " started" << std::endl;
+    while (true) {
+        WaitForSingleObject(hSemaphore, INFINITE);
+        WaitForSingleObject(hMutex, INFINITE);
+        if (!queue.empty()) {
+            int value = queue.front();
+            queue.pop();
+            std::cout << "Consumer " << id << " consumed " << value << std::endl;
+        }
+        else {
+            ReleaseMutex(hMutex);
+            ReleaseSemaphore(hSemaphore, 1, NULL);
+            std::cout << "Consumer " << id << " waiting" << std::endl;
+            WaitForSingleObject(hSemaphore, INFINITE);
+            WaitForSingleObject(hMutex, INFINITE);
+            int value = queue.front();
+            queue.pop();
+            std::cout << "Consumer " << id << " consumed " << value << std::endl;
+        }
+        ReleaseMutex(hMutex);
+        ReleaseSemaphore(hSemaphore, 1, NULL);
+        Sleep(1000);
+    }
+}
+
+int main() {
+    hMutex = CreateMutex(NULL, FALSE, NULL);
+    hSemaphore = CreateSemaphore(NULL, QUEUE_SIZE, QUEUE_SIZE, NULL);
+
+
+    HANDLE hProducers[NUM_PRODUCERS];
+    for (int i = 0; i < NUM_PRODUCERS; ++i) {
+        hProducers[i] = (HANDLE)_beginthreadex(NULL, 0, &producer, (void*)i, 0, NULL);
+    }
+
+
+    HANDLE hConsumers[NUM_CONSUMERS];
+    for (int i = 0; i < NUM_CONSUMERS; ++i) {
+        hConsumers[i] = (HANDLE)_beginthreadex(NULL, 0, &consumer, (void*)i, 0, NULL);
+    }
+
+
+    std::cin.get();
+
+
+    for (int i = 0; i < NUM_PRODUCERS; ++i) {
+        WaitForSingleObject(hProducers[i], INFINITE);
+        CloseHandle(hProducers[i]);
+    }
+
+
+    for (int i = 0; i < NUM_CONSUMERS; ++i) {
+        WaitForSingleObject(hConsumers[i], INFINITE);
+        CloseHandle(hConsumers[i]);
+    }
+
+
+    CloseHandle(hMutex);
+    CloseHandle(hSemaphore);
+    return 0;
+}

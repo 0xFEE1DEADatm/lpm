@@ -1,0 +1,47 @@
+#include <iostream>
+#include <set>
+#include <map>
+#include <fstream>
+#include <vector>
+
+int toRoman(std:: string word)
+{
+    char abc[7] = { 'I', 'V', 'X', 'L', 'C', 'D', 'M' };
+    int numbers[7] = { 1,5,10,50,100,500,1000 };
+    std::map<char, int> romanian;
+
+    for (int i = 0; i < 7; i++)
+        romanian[abc[i]] = numbers[i];
+
+    int sum = 0;
+    std::string x(word);
+    word.begin();
+    std::map <char, int> ::iterator it;
+
+    for (int i = 0; i < word.length(); i++)
+    {
+        it = romanian.begin();
+      
+        while (it != romanian.end())
+        {
+            if (x[i] == it->first)
+                sum += it->second;
+            
+            it++;
+        }
+    }
+    
+    return sum;
+}
+
+int main()
+{
+    std::string example;
+
+    std::cout<< "Enter the roman numer: ";
+    std::cin >> example;
+   
+    std::cout << "Decimal number -> " << toRoman(example);
+
+    return 0;
+}

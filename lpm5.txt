@@ -1,0 +1,37 @@
+#include <iostream>
+#include <thread>
+
+void sum(int* a, int* b, int* res, int start, int end) {
+    for (int i = start; i < end; ++i) {
+        res[i] = a[i] + b[i];
+        std::cout << "Thread " << std::this_thread::get_id() << " calculated result " << res[i] << " for index " << i << std::endl;
+    }
+}
+
+int main() {
+    const int array_size = 100000;
+    int a[array_size], b[array_size], res[array_size];
+
+    for (int i = 0; i < array_size; ++i) {
+        a[i] = i;
+        b[i] = i * 2;
+    }
+
+    const int num_threads = 4;
+    std::thread threads[num_threads];
+
+    int step = array_size / num_threads;
+    int start = 0, end = step;
+
+    for (int i = 0; i < num_threads; ++i) {
+        threads[i] = std::thread(sum, a, b, res, start, end);
+        start += step;
+        end += step;
+    }
+
+    for (int i = 0; i < num_threads; ++i) {
+        threads[i].join();
+    }
+
+    return 0;
+}
